@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  web:
+    container_name: web_pratica
+    environment:
+      POSTGRES_PASSWORD: masterpass
+      POSTGRES_USER: userdb
+      POSTGRES_DB: pratica_project
+    build:
+      context: .
+      dockerfile: Dockerfile_4
+    volumes:
+      - ./docker_pratica:/src
+    expose:
+      - "8000"
+    depends_on:
+      - database
+      - redis
+    links:
+        - database
+        - redis
+    command: bash -c "sleep 6 && printf 'yes' | python3 manage.py collectstatic && python3 manage.py migrate && gunicorn docker_pratica.wsgi -b 0.0.0.0:8000"
+  celery:
+    container_name: celery_pratica
+    environment:
+      POSTGRES_PASSWORD: masterpass
+      POSTGRES_USER: userdb
+      POSTGRES_DB: pratica_project
+    build:
+      context: .
+      dockerfile: Dockerfile_4
+    command: celery -A docker_pratica worker --concurrency=4 -l info
+    volumes:
+      - ./docker_pratica:/src
+    depends_on:
+      - database
+      - redis
+  nginx:
+    container_name: nginx_pratica
+    image: nginx:latest
+    container_name:
+    ports:
+      - "80:8000"
+    volumes:
+      - ./configs/nginx.conf:/etc/nginx/conf.d/nginx.conf
+    depends_on:
+      - web
+      - database
+      - redis
+  database:
+    container_name: database_pratica
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: masterpass
+      POSTGRES_USER: userdb
+      POSTGRES_DB: pratica_project
+  redis:
+    container_name: redis_pratica
+    image: redis:latest
+    ports:
+     - '6379:6379'

@@ -10,3 +10,5 @@ COPY /docker_pratica /src/
 WORKDIR /src
 
 CMD ["python", "manage.py", "runserver", "0.0.0.0:80"]
+
+EXPOSE 80

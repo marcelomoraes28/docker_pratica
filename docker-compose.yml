@@ -1,61 +1,57 @@
 version: '3'
 
 services:
-  web:
+  web_pratica:
     container_name: web_pratica
     environment:
       POSTGRES_PASSWORD: masterpass
+      POSTGRES_HOST: database_pratica
       POSTGRES_USER: userdb
       POSTGRES_DB: pratica_project
+      CELERY_BROKER_URL: redis://redis_pratica:6379/1
     build:
       context: .
       dockerfile: Dockerfile_4
-    volumes:
-      - ./docker_pratica:/src
+    command: gunicorn docker_pratica.wsgi -b 0.0.0.0:8000
     expose:
       - "8000"
     depends_on:
-      - database
-      - redis
-    links:
-        - database
-        - redis
-    command: bash -c "sleep 6 && printf 'yes' | python3 manage.py collectstatic && python3 manage.py migrate && gunicorn docker_pratica.wsgi -b 0.0.0.0:8000"
-  celery:
+      - database_pratica
+      - redis_pratica
+  celery_pratica:
     container_name: celery_pratica
     environment:
       POSTGRES_PASSWORD: masterpass
+      POSTGRES_HOST: database_pratica
       POSTGRES_USER: userdb
       POSTGRES_DB: pratica_project
+      CELERY_BROKER_URL: redis://redis_pratica:6379/1
     build:
       context: .
       dockerfile: Dockerfile_4
-    command: celery -A docker_pratica worker --concurrency=4 -l info
-    volumes:
-      - ./docker_pratica:/src
+    command: celery -A docker_pratica worker --concurrency=4 -l debug
     depends_on:
-      - database
-      - redis
-  nginx:
+      - database_pratica
+      - redis_pratica
+  nginx_pratica:
     container_name: nginx_pratica
     image: nginx:latest
-    container_name:
     ports:
       - "80:8000"
     volumes:
       - ./configs/nginx.conf:/etc/nginx/conf.d/nginx.conf
     depends_on:
-      - web
-      - database
-      - redis
-  database:
+      - web_pratica
+      - database_pratica
+      - redis_pratica
+  database_pratica:
     container_name: database_pratica
     image: postgres
     environment:
       POSTGRES_PASSWORD: masterpass
       POSTGRES_USER: userdb
       POSTGRES_DB: pratica_project
-  redis:
+  redis_pratica:
     container_name: redis_pratica
     image: redis:latest
     ports:
